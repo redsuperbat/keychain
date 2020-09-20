@@ -1,37 +1,30 @@
-import {
-  Column,
-  CreateDateColumn,
-  Entity,
-  ManyToOne,
-  PrimaryGeneratedColumn,
-  UpdateDateColumn,
-} from "typeorm";
-import { User } from "./User";
+import { Column, CreateDateColumn, Entity, ManyToOne, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm'
+import { User } from './User'
 
 @Entity()
 export class RefreshToken {
-  @PrimaryGeneratedColumn("uuid")
-  id: string;
+  @PrimaryGeneratedColumn('uuid')
+  id: string
 
   @ManyToOne((type) => User, (user) => user.refreshTokens)
-  user: User;
+  user: User
 
   @Column()
-  jwtId: string;
+  jwtId: string
 
   @Column({ default: false })
-  used: boolean;
+  used: boolean
 
   @Column({ default: false })
-  invalidated: boolean;
+  invalidated: boolean
 
   @Column()
-  expiryDate: Date;
+  expiryDate: Date
 
   // Metadata
   @CreateDateColumn()
-  creationDate: Date;
+  creationDate: Date
 
   @UpdateDateColumn()
-  updateDate: Date;
+  updateDate: Date
 }

@@ -1,32 +1,25 @@
-import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  OneToMany,
-  JoinColumn,
-} from "typeorm";
-import { RefreshToken } from "./RefreshToken";
+import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm'
+import { RefreshToken } from './RefreshToken'
 
 @Entity()
 export class User {
   @PrimaryGeneratedColumn()
-  id: number;
+  id: number
 
   @Column({ unique: true })
-  email: string;
+  email: string
 
   @Column()
-  password: string;
+  password: string
 
   @OneToMany((type) => RefreshToken, (refreshToken) => refreshToken.user)
-  refreshTokens: RefreshToken[];
+  refreshTokens: RefreshToken[]
 
   public static fromJson(json: any) {
-    const user = new User();
-    user.email = json.email;
-    user.id = json.id;
-    user.password = json.password;
-    user.refreshTokens = json.refreshTokens;
-    return user;
+    const user = new User()
+    user.email = json.email
+    user.id = json.id
+    user.refreshTokens = json.refreshTokens
+    return user
   }
 }
