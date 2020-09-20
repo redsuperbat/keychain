@@ -14,10 +14,11 @@ export class AppBuilder {
     return this
   }
 
-  public build(port: number): Promise<void> {
+  public build(port: number, callback?: () => void): Promise<void> {
     return new Promise((resolve) => {
       this.app.listen(port, () => {
         console.log(`Server is listening on port ${port}...`)
+        !!callback ?? callback()
         resolve()
       })
     })
