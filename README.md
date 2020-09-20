@@ -1,7 +1,12 @@
-# Awesome Project Build with TypeORM
+# Auth microservice with JWT
 
-Steps to run this project:
+## Development startup
 
-1. Run `npm i` command
-2. Setup database settings inside `ormconfig.json` file
-3. Run `npm start` command
+- Comment out server container from docker compose
+- Run docker-compose up -d
+- Run npm start:dev
+
+## Production startup
+
+- Make sure docker compose file is properly formatted
+- Run docker-compose up -d
