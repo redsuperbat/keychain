@@ -1,7 +1,7 @@
 {
-  "name": "cms-api",
+  "name": "keychain",
   "version": "0.0.1",
-  "description": "Awesome project developed with TypeORM.",
+  "description": "Auth microservice",
   "devDependencies": {
     "@types/bcrypt": "^3.0.0",
     "@types/date-fns": "^2.6.0",
