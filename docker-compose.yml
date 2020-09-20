@@ -1,18 +1,44 @@
 # Use postgres/example user/password credentials
-version: "3.1"
+version: '3.1'
 
 services:
-  db:
+  postgres:
     image: postgres
+    networks:
+      - keychain_network
+    container_name: postgres
     restart: always
     environment:
       POSTGRES_USER: root
       POSTGRES_PASSWORD: password
+      POSTGRES_DB: auth
     ports:
       - 5432:5432
 
   adminer:
     image: adminer
     restart: always
+    networks:
+      - keychain_network
     ports:
       - 8080:8080
+
+  auth-service:
+    networks:
+      - keychain_network
+    build: .
+    restart: always
+    depends_on:
+      - postgres
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      DB_NAME: auth
+      DB_HOST: postgres
+
+    ports:
+      - 4001:4000
+
+networks:
+  keychain_network:
+    driver: bridge

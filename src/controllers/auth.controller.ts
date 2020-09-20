@@ -19,14 +19,11 @@ export class AuthController {
     if (!JWT.isTokenValid(body.token)) throw new Unauthorized('JWT is not valid')
 
     const jwtId = JWT.getJwtPayloadValueByKey(body.token, 'jti')
-    console.log('Waiting for user')
 
     const user = await Database.userRepository.findOne(JWT.getJwtPayloadValueByKey(body.token, 'id'))
 
     // check if the user exists
     if (!user) throw new NotFound('User does not exist')
-
-    console.log('Waiting for refreshtoken')
 
     // fetch refresh token from db
     const refreshToken = await Database.refreshTokenRepository.findOne(body.refreshToken)
@@ -43,11 +40,8 @@ export class AuthController {
       throw new Unauthorized('Refresh Token has been used or invalidated')
 
     refreshToken.used = true
-    console.log('Save new refreshtoken')
 
     await Database.refreshTokenRepository.save(refreshToken)
-
-    console.log('Save new generate new token')
 
     // generate a fresh pair of token and refresh token
     const tokenResults = await JWT.generateTokenAndRefreshToken(user)
