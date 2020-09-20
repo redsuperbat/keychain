@@ -37,7 +37,7 @@ services:
       DB_HOST: postgres
 
     ports:
-      - 4001:4000
+      - 4203:4000
 
 networks:
   keychain_network:
