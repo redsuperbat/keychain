@@ -1,0 +1,17 @@
+CREATE TABLE IF NOT EXISTS user (
+    id SERIAL PRIMARY KEY,
+    email VARCHAR UNIQUE NOT NULL,
+    password VARCHAR NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS refresh_token (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES user(id),
+  jwt_id VARCHAR NOT NULL,
+  used BOOLEAN DEFAULT false,
+  invalidated BOOLEAN DEFAULT false,
+  expiry_date TIMESTAMP NOT NULL,
+  creation_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  update_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+

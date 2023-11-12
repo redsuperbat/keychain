@@ -82,7 +82,7 @@ export class AuthController {
     res.status(201).json(authDTO)
   }
 
-  public static login: RequestHandler = async (req, res, next) => {
+  public static login: RequestHandler = async (req, res) => {
     const loginDTO: LoginDTO = req.body
     const user = await Database.userRepository.findOne({
       email: loginDTO.email,

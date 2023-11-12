@@ -1,7 +1,7 @@
 import * as request from 'supertest'
 import { internet } from 'faker'
-import { loginEndpoint, registerEndpoint, password } from './generic/constants'
-import { app } from '..'
+import { registerEndpoint, password } from './generic/constants'
+import { app } from '../index.js'
 
 let http: request.SuperTest<request.Test>
 
