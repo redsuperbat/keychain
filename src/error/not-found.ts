@@ -1,5 +1,5 @@
-import { HttpError } from './http-error'
+import { HttpError } from './http-error.js';
 
 export class NotFound extends HttpError {
-  public statusCode: number = 404
+  public statusCode: number = 404;
 }

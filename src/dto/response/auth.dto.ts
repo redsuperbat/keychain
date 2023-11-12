@@ -1,7 +1,7 @@
-import { UserDTO } from "./user.dto";
+import type { UserDTO } from './user.dto.js';
 
-export class AuthDTO {
+export type AuthDTO = {
   token: string;
   refreshToken: string;
   user: UserDTO;
-}
+};

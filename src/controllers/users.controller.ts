@@ -1,51 +1,29 @@
-import { RequestHandler } from 'express'
-import { Database } from '../database'
-import { BadRequest } from '../error/bad-request'
-import { UserDTO } from '../dto/response/user.dto'
+import { type RequestHandler } from 'express';
+import type { RefreshTokenRepository, UserRepository } from '../database.js';
+import { BadRequest } from '../error/bad-request.js';
 
 export class UsersController {
-  public static delete: RequestHandler = async ({ params: { id } }, res) => {
-    const user = await Database.userRepository.findOne(id, {
-      relations: ['refreshTokens'],
-    })
-
-    // Throw error if user is not found
-    if (!user) throw new BadRequest('Entity not found')
-
-    await Database.refreshTokenRepository.remove(user.refreshTokens)
-    await Database.userRepository.remove(user)
-
-    // Create userDTO
-    const userDTO = new UserDTO()
-    userDTO.email = user.email
-    userDTO.id = user.id
-
-    res.json(userDTO)
+  #userRepository: UserRepository;
+  #refreshTokenRepository: RefreshTokenRepository;
+  constructor(opts: {
+    userRepository: UserRepository;
+    refreshTokenRepository: RefreshTokenRepository;
+  }) {
+    this.#userRepository = opts.userRepository;
+    this.#refreshTokenRepository = opts.refreshTokenRepository;
   }
 
-  public static get_all: RequestHandler = async (req, res) => {
-    const users = await Database.userRepository.find({
-      relations: ['refreshTokens'],
-    })
+  public delete: RequestHandler = async ({ params: { id } }, res) => {
+    const user = await this.#userRepository.findById(id);
+    if (!user) throw new BadRequest('Entity not found');
+    await this.#refreshTokenRepository.deleteByUserId(user.id);
+    await this.#userRepository.delete(user.id);
+    res.json(user);
+  };
 
-    const userDtos = users.map((u) => UserDTO.fromJson(u))
+  public getAll: RequestHandler = async (_, res) => {
+    const users = await this.#userRepository.find();
 
-    res.json(userDtos)
-  }
-
-  //  public delete_all: RequestHandler = (req, res) => {
-  //    Database.userRepository.remove
-  //   //  User.deleteMany({})
-  //      .exec()
-  //      .then((result) => res.json(result))
-  //      .catch((error) => res.status(500).json({ error }));
-  //  };
-
-  // public edit: RequestHandler = (req: IUserDataRequest, res) => {
-  //   const id = req.userData.userId;
-  //   User.updateOne({ _id: mongoose.Types.ObjectId(id) }, { $set: req.body })
-  //     .exec()
-  //     .then((result) => res.json(result))
-  //     .catch((error) => res.status(500).json({ error }));
-  // };
+    res.json(users);
+  };
 }

@@ -1,10 +1,6 @@
-export abstract class HttpError implements Error {
-  public name: string;
-  public message: string;
-  public stack?: string;
+export abstract class HttpError extends Error {
   public abstract statusCode: number;
-
   constructor(message: string) {
-    this.message = message;
+    super(message);
   }
 }

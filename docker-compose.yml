@@ -4,10 +4,8 @@ version: '3.1'
 services:
   postgres:
     image: postgres
-    networks:
-      - keychain_network
     container_name: postgres
-    restart: always
+    restart: unless-stopped
     environment:
       POSTGRES_USER: root
       POSTGRES_PASSWORD: password
@@ -16,28 +14,7 @@ services:
   adminer:
     image: adminer
     container_name: adminer
-    restart: always
-    networks:
-      - keychain_network
+    restart: unless-stopped
     ports:
       - 8083:8080
 
-  auth-service:
-    networks:
-      - keychain_network
-    build: .
-    restart: always
-    depends_on:
-      - postgres
-    environment:
-      NODE_ENV: production
-      PORT: 4000
-      DB_NAME: auth
-      DB_HOST: postgres
-
-    ports:
-      - 4203:4000
-
-networks:
-  keychain_network:
-    driver: bridge

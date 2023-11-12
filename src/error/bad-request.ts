@@ -1,5 +1,5 @@
-import { HttpError } from './http-error'
+import { HttpError } from './http-error.js';
 
 export class BadRequest extends HttpError {
-  public statusCode: number = 400
+  public statusCode: number = 400;
 }

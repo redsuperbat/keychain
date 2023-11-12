@@ -1,4 +1,4 @@
-import * as bcrypt from "bcrypt";
+import bcrypt from 'bcrypt';
 
 export class PasswordHash {
   public static async hashPassword(plain: string) {

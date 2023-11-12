@@ -4,7 +4,9 @@
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "outDir": "./dist",
+    "verbatimModuleSyntax": true,
     "sourceMap": false
   },
-  "exclude": ["node_modules", "src/tests/*"]
+  "include": ["./**/*.ts"],
+  "exclude": ["node_modules"]
 }

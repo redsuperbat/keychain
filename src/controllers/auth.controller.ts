@@ -1,118 +1,140 @@
-import { RequestHandler } from 'express'
-import { Database } from '../database'
-import { LoginDTO } from '../dto/request/login.dto'
-import { RefreshTokenDTO } from '../dto/request/refresh-token.dto'
-import { RegisterDTO } from '../dto/request/register.dto'
-import { AuthDTO } from '../dto/response/auth.dto'
-import { UserDTO } from '../dto/response/user.dto'
-import { User } from '../entity/User'
-import { BadRequest } from '../error/bad-request'
-import { NotFound } from '../error/not-found'
-import { Unauthorized } from '../error/unauthorized'
-import { JWT } from '../security/jwt'
-import { PasswordHash } from '../security/password-hash'
-import { RegEx } from '../static/regex.static'
+import { type RequestHandler } from 'express';
+import type { LoginDTO } from '../dto/request/login.dto.js';
+import type { RefreshTokenDTO } from '../dto/request/refresh-token.dto.js';
+import type { RegisterDTO } from '../dto/request/register.dto.js';
+import { BadRequest } from '../error/bad-request.js';
+import { NotFound } from '../error/not-found.js';
+import { Unauthorized } from '../error/unauthorized.js';
+import { JWT } from '../security/jwt.js';
+import { PasswordHash } from '../security/password-hash.js';
+import { RegEx } from '../static/regex.static.js';
+import type { UserRepository, RefreshTokenRepository } from '../database.js';
+import { RefreshToken } from '../entity/RefreshToken.js';
 
 export class AuthController {
-  public static refreshToken: RequestHandler = async ({ body }: { body: RefreshTokenDTO }, res, next) => {
+  #userRepository: UserRepository;
+  #refreshTokenRepository: RefreshTokenRepository;
+  #jwt: JWT;
+  constructor(opts: {
+    userRepository: UserRepository;
+    refreshTokenRepository: RefreshTokenRepository;
+    jwt: JWT;
+  }) {
+    this.#userRepository = opts.userRepository;
+    this.#refreshTokenRepository = opts.refreshTokenRepository;
+    this.#jwt = opts.jwt;
+  }
+
+  public refreshToken: RequestHandler = async (
+    { body }: { body: RefreshTokenDTO },
+    res
+  ) => {
     // check if the jwt token is valid & has not expired
-    if (!JWT.isTokenValid(body.token)) throw new Unauthorized('JWT is not valid')
+    if (!this.#jwt.isTokenValid(body.token))
+      throw new Unauthorized('JWT is not valid');
 
-    const jwtId = JWT.getJwtPayloadValueByKey(body.token, 'jti')
+    const jwtId = this.#jwt.getJwtPayloadValueByKey(body.token, 'jti');
 
-    const user = await Database.userRepository.findOne(JWT.getJwtPayloadValueByKey(body.token, 'id'))
+    const user = await this.#userRepository.findById(
+      this.#jwt.getJwtPayloadValueByKey(body.token, 'id')
+    );
 
     // check if the user exists
-    if (!user) throw new NotFound('User does not exist')
+    if (!user) throw new NotFound('User does not exist');
 
     // fetch refresh token from db
-    const refreshToken = await Database.refreshTokenRepository.findOne(body.refreshToken)
+    const refreshToken = await this.#refreshTokenRepository.findById(
+      body.refreshToken
+    );
+    if (!refreshToken) {
+      throw new NotFound('no refresh token found');
+    }
 
     // check if the refresh token exists and is linked to that jwt token‚
-    if (!JWT.isRefreshTokenLinkedToToken(refreshToken, jwtId))
-      throw new Unauthorized('Token does not match with Refresh Token')
+    if (!this.#jwt.isRefreshTokenLinkedToToken(refreshToken, jwtId))
+      throw new Unauthorized('Token does not match with Refresh Token');
 
     // check if the refresh token has expired
-    if (JWT.isRefreshTokenExpired(refreshToken)) throw new Unauthorized('Refresh Token has expired')
+    if (RefreshToken.expired(refreshToken))
+      throw new Unauthorized('Refresh Token has expired');
 
     // check if the refresh token was used or invalidated
-    if (JWT.isRefreshTokenUsedOrInvalidated(refreshToken))
-      throw new Unauthorized('Refresh Token has been used or invalidated')
+    if (RefreshToken.usedOrInvalidated(refreshToken))
+      throw new Unauthorized('Refresh Token has been used or invalidated');
 
-    refreshToken.used = true
+    refreshToken.used = true;
 
-    await Database.refreshTokenRepository.save(refreshToken)
+    await this.#refreshTokenRepository.createRefreshToken(refreshToken);
 
     // generate a fresh pair of token and refresh token
-    const tokenResults = await JWT.generateTokenAndRefreshToken(user)
+    const tokenResults = await this.#jwt.generateTokenAndRefreshToken(user);
 
     // generate an authentication response
-    const authenticationDTO = new AuthDTO()
-    authenticationDTO.user = UserDTO.fromJson(user)
-    authenticationDTO.token = tokenResults.token
-    authenticationDTO.refreshToken = tokenResults.refreshToken
 
-    res.json(authenticationDTO)
-  }
+    res.json({
+      token: tokenResults.token,
+      refreshToken: tokenResults.refreshToken,
+      user,
+    });
+  };
 
-  public static register: RequestHandler = async ({ body: { email, password } }: { body: RegisterDTO }, res, next) => {
+  public register: RequestHandler = async (
+    { body: { email, password } }: { body: RegisterDTO },
+    res
+  ) => {
     // Check if valid info was provided
-    if (!email || !password) throw new BadRequest('Invalid information provided')
+    if (!email || !password)
+      throw new BadRequest('Invalid information provided');
 
     // Check if user exists
-    if (await Database.userRepository.findOne({ email })) throw new BadRequest('Email already exists')
+    if (await this.#userRepository.findByEmail(email)) {
+      throw new BadRequest('Email already exists');
+    }
 
     // Check if email is valid
-    if (!RegEx.email(email)) throw new BadRequest('Invalid email format')
+    if (!RegEx.email(email)) {
+      throw new BadRequest('Invalid email format');
+    }
 
-    // Create user and save in DB
-    const user = new User()
-    user.email = email
-    user.password = await PasswordHash.hashPassword(password)
-    const savedUser = await Database.userRepository.save(user)
+    const hashedPassword = await PasswordHash.hashPassword(password);
+    const user = await this.#userRepository.createUser({
+      email,
+      password: hashedPassword,
+    });
 
-    const { token, refreshToken } = await JWT.generateTokenAndRefreshToken(user)
+    const { token, refreshToken } =
+      await this.#jwt.generateTokenAndRefreshToken(user);
 
-    // create DTO
-    const authDTO = new AuthDTO()
-    authDTO.user = User.fromJson(savedUser)
-    authDTO.refreshToken = refreshToken
-    authDTO.token = token
+    res.status(201).json({ token, refreshToken, user });
+  };
 
-    res.status(201).json(authDTO)
-  }
-
-  public static login: RequestHandler = async (req, res) => {
-    const loginDTO: LoginDTO = req.body
-    const user = await Database.userRepository.findOne({
-      email: loginDTO.email,
-    })
+  public login: RequestHandler = async (req, res) => {
+    const loginDTO: LoginDTO = req.body;
+    const user = await this.#userRepository.findByEmail(loginDTO.email);
 
     // If no user was found throw error
-    if (!user) throw new BadRequest('User does not exist')
+    if (!user) throw new BadRequest('User does not exist');
 
     // If password does not match user password throw error
-    if (!PasswordHash.isPasswordValid(loginDTO.password, user.password)) throw new Unauthorized('Invalid credentials')
+    if (!PasswordHash.isPasswordValid(loginDTO.password, user.password))
+      throw new Unauthorized('Invalid credentials');
 
-    const { token, refreshToken } = await JWT.generateTokenAndRefreshToken(user)
+    const { token, refreshToken } =
+      await this.#jwt.generateTokenAndRefreshToken(user);
 
-    // Create DTO
-    const authDTO = new AuthDTO()
-    authDTO.user = User.fromJson(user)
-    authDTO.refreshToken = refreshToken
-    authDTO.token = token
-
-    return res.json(authDTO)
-  }
+    return res.json({ token, refreshToken, user });
+  };
 
   public async logout(token: string) {
     // validate the retrieved jwt token
-    if (!JWT.isTokenValid(token, true)) throw new Unauthorized('Unauthorized')
+    if (!this.#jwt.isTokenValid(token, true)) {
+      throw new Unauthorized('Unauthorized');
+    }
 
     // retrieve the connected refresh token
-    const refreshToken = await JWT.getRefreshTokenByJwtToken(token)
+    const refreshToken = await this.#jwt.getRefreshTokenByJwtToken(token);
 
     // update the refresh token and set invalidated to true
-    await JWT.invalidateRefreshToken(refreshToken)
+    await this.#jwt.invalidateRefreshToken(refreshToken);
   }
 }

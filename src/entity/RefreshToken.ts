@@ -1,30 +1,20 @@
-import { Column, CreateDateColumn, Entity, ManyToOne, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm'
-import { User } from './User'
+import { DateTime } from 'luxon';
+export type RefreshToken = {
+  id: string;
+  userId: string;
+  jwtId: string;
+  used: boolean;
+  invalidated: boolean;
+  expiryDate: Date;
+  creationDate: Date;
+  updateDate: Date;
+};
 
-@Entity()
-export class RefreshToken {
-  @PrimaryGeneratedColumn('uuid')
-  id: string
-
-  @ManyToOne((type) => User, (user) => user.refreshTokens)
-  user: User
-
-  @Column()
-  jwtId: string
-
-  @Column({ default: false })
-  used: boolean
-
-  @Column({ default: false })
-  invalidated: boolean
-
-  @Column()
-  expiryDate: Date
-
-  // Metadata
-  @CreateDateColumn()
-  creationDate: Date
-
-  @UpdateDateColumn()
-  updateDate: Date
+export namespace RefreshToken {
+  export function usedOrInvalidated(token: RefreshToken): boolean {
+    return token.invalidated || token.used;
+  }
+  export function expired(refreshToken: RefreshToken): boolean {
+    return DateTime.fromJSDate(refreshToken.expiryDate) < DateTime.now();
+  }
 }
